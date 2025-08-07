@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>楚天镜智能风控系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0F121A',
+                        'dark-card': '#1A1F2C',
+                        'neon-blue': '#00F0FF',
+                        'neon-cyan': '#00FFD1',
+                        'neon-purple': '#9D4EDD',
+                        'accent-red': '#FF3A2F',
+                        'gray-dark': '#2D3748',
+                        'gray-light': '#A0AEC0'
+                    },
+                    fontFamily: {
+                        'future': ['Orbitron', 'Inter', 'sans-serif'],
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { 'box-shadow': '0 0 5px rgba(0, 240, 255, 0.5)' },
+                            '100%': { 'box-shadow': '0 0 20px rgba(0, 240, 255, 0.8)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow-neon {
+                text-shadow: 0 0 8px rgba(0, 240, 255, 0.7);
+            }
+            .border-glow {
+                box-shadow: 0 0 5px rgba(0, 240, 255, 0.7);
+            }
+            .bg-grid {
+                background-image: linear-gradient(rgba(45, 55, 72, 0.1) 1px, transparent 1px),
+                                linear-gradient(90deg, rgba(45, 55, 72, 0.1) 1px, transparent 1px);
+                background-size: 20px 20px;
+            }
+            .glass-effect {
+                backdrop-filter: blur(10px);
+                background-color: rgba(26, 31, 44, 0.7);
+            }
+        }
+    </style>
+    
+    <!-- 引入未来感字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-dark-bg text-gray-200 min-h-screen bg-grid">
+    <!-- 访问控制模态框 -->
+    <div id="access-control" class="fixed inset-0 z-50 flex items-center justify-center p-4 glass-effect">
+        <div class="w-full max-w-md bg-dark-card rounded-lg p-6 border border-neon-blue/30 animate-glow">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-neon-blue/10 mb-4">
+                    <i class="fa fa-shield text-neon-blue text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-future font-bold text-white">访问控制</h2>
+                <p class="text-gray-light text-sm mt-2">请输入密码以访问系统</p>
+            </div>
+            
+            <form id="access-form" class="space-y-4">
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-light mb-1">密码</label>
+                    <div class="relative">
+                        <input type="password" id="password" class="w-full bg-gray-dark border border-gray-700 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-neon-blue/50 focus:border-transparent" placeholder="输入访问密码">
+                        <button type="button" id="toggle-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-light hover:text-white">
+                            <i class="fa fa-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="w-full bg-neon-blue text-dark-bg font-semibold py-2 px-4 rounded-md hover:bg-neon-blue/90 transition-colors">
+                    验证访问
+                </button>
+            </form>
+            
+            <p id="access-error" class="text-accent-red text-sm mt-4 text-center hidden">密码错误，请重试</p>
+        </div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 z-40 glass-effect border-b border-gray-800 transition-all duration-300">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- 系统Logo和名称 -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-neon-blue to-neon-cyan flex items-center justify-center">
+                        <i class="fa fa-shield text-dark-bg text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-future font-bold text-white">
+                        楚天镜<span class="text-neon-blue">智能风控系统</span>
+                    </h1>
+                </div>
+                
+                <!-- 主导航 - 桌面版 -->
+                <nav class="hidden md:flex space-x-1 overflow-x-auto whitespace-nowrap pb-1">
+                    <button class="nav-item px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-dark/50 transition-colors" data-section="overview">系统概述</button>
+                    <button class="nav-item px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-dark/50 transition-colors" data-section="strategic-goals">战略目标</button>
+                    <button class="nav-item px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-dark/50 transition-colors" data-section="first-phase">一期规划</button>
+                    <button class="nav-item px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-dark/50 transition-colors" data-section="navigation">导航结构</button>
+                    <button class="nav-item px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-dark/50 transition-colors" data-section="features">功能详情</button>
+                </nav>
+                
+                <!-- 移动端菜单按钮 -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="p-2 rounded-md hover:bg-gray-dark/50 focus:outline-none">
+                        <i class="fa fa-bars text-neon-blue"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 移动端导航菜单 -->
+        <div id="mobile-menu" class="hidden md:hidden glass-effect border-t border-gray-800">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <button class="mobile-nav-item block w-full px-4 py-2 rounded-md text-left text-sm font-medium hover:bg-gray-dark/50" data-section="overview">系统概述</button>
+                <button class="mobile-nav-item block w-full px-4 py-2 rounded-md text-left text-sm font-medium hover:bg-gray-dark/50" data-section="strategic-goals">战略目标</button>
+                <button class="mobile-nav-item block w-full px-4 py-2 rounded-md text-left text-sm font-medium hover:bg-gray-dark/50" data-section="first-phase">一期规划</button>
+                <button class="mobile-nav-item block w-full px-4 py-2 rounded-md text-left text-sm font-medium hover:bg-gray-dark/50" data-section="navigation">导航结构</button>
+                <button class="mobile-nav-item block w-full px-4 py-2 rounded-md text-left text-sm font-medium hover:bg-gray-dark/50" data-section="features">功能详情</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- 系统概述部分 -->
+        <section id="overview" class="section-content mb-16">
+            <div class="relative overflow-hidden rounded-2xl mb-8 border border-neon-blue/30">
+                <div class="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20"></div>
+                <div class="relative p-8 z-10">
+                    <h2 class="text-3xl font-future font-bold mb-4 text-white text-shadow-neon">楚天镜智能风控系统</h2>
+                    <p class="text-lg opacity-90 max-w-3xl">
+                        融合人工智能与大数据技术，构建全方位信用风险预警体系，为金融决策提供精准洞察与前瞻预警。
+                    </p>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-dark-card rounded-xl border border-gray-800 p-6 hover:border-neon-blue/50 transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-neon-blue/10 flex items-center justify-center mr-4">
+                            <i class="fa fa-line-chart text-neon-blue text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-future font-semibold text-white">系统定位</h3>
+                    </div>
+                    <p class="text-gray-light">
+                        作为智能风控中枢，整合多维度数据资源，构建全息风险视图，助力金融机构精准识别、动态预警和高效管理各类信用风险，
+                        覆盖从总行到分支行的多层级风险管理需求。
+                    </p>
+                </div>
+                
+                <div class="bg-dark-card rounded-xl border border-gray-800 p-6 hover:border-neon-cyan/50 transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-neon-cyan/10 flex items-center justify-center mr-4">
+                            <i class="fa fa-lightbulb-o text-neon-cyan text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-future font-semibold text-white">核心价值</h3>
+                    </div>
+                    <p class="text-gray-light">
+                        通过AI赋能风险管控全流程，实现风险识别自动化、预警精准化、管理智能化，提升风险管控效率，
+                        优化信贷资源配置，服务国家战略实施与实体经济发展。
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 风险预警概览图表 -->
+            <div class="mt-10 bg-dark-card rounded-xl border border-gray-800 p-6">
+                <h3 class="text-xl font-future font-semibold mb-6 text-white">风险预警覆盖范围</h3>
+                <div class="h-80">
+                    <canvas id="riskCoverageChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 战略目标部分 -->
+        <section id="strategic-goals" class="section-content mb-16 hidden">
+            <h2 class="text-2xl font-future font-bold mb-8 text-white border-b border-gray-800 pb-2">
+                <span class="text-neon-blue">战略</span>目标
+            </h2>
+            
+            <div class="grid md:grid-cols-3 gap-6 mb-10">
+                <!-- 战略目标1 -->
+                <div class="bg-dark-card rounded-xl border border-gray-800 overflow-hidden hover:border-neon-blue/50 transition-all duration-300">
+                    <div class="h-1 bg-gradient-to-r from-neon-blue to-neon-cyan"></div>
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 rounded-full bg-neon-blue/10 flex items-center justify-center mr-3">
+                                <i class="fa fa-flag text-neon-blue"></i>
+                            </div>
+                            <h3 class="text-lg font-future font-semibold text-white">战略对标，服务国家大局</h3>
+                        </div>
+                        <ul class="space-y-3 text-gray-light text-sm">
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-cyan mt-1 mr-2"></i>
+                                <span>深度融入"十五五"规划，响应国家产业升级战略</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-cyan mt-1 mr-2"></i>
+                                <span>嵌入ESG风险评估模块，确保信贷资源精准配置</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-cyan mt-1 mr-2"></i>
+                                <span>构建"全视图"风控框架，实现风险"一张图"管理</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- 战略目标2 -->
+                <div class="bg-dark-card rounded-xl border border-gray-800 overflow-hidden hover:border-neon-cyan/50 transition-all duration-300">
+                    <div class="h-1 bg-gradient-to-r from-neon-cyan to-neon-blue"></div>
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 rounded-full bg-neon-cyan/10 flex items-center justify-center mr-3">
+                                <i class="fa fa-microchip text-neon-cyan"></i>
+                            </div>
+                            <h3 class="text-lg font-future font-semibold text-white">科技赋能，夯实智能根基</h3>
+                        </div>
+                        <ul class="space-y-3 text-gray-light text-sm">
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-blue mt-1 mr-2"></i>
+                                <span>打造"数据-模型-策略"铁三角，实现自动化处理</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-blue mt-1 mr-2"></i>
+                                <span>构建可复用、可迭代的模型开发与管理平台</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-blue mt-1 mr-2"></i>
+                                <span>开发可视化策略配置引擎，支持快速部署</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- 战略目标3 -->
+                <div class="bg-dark-card rounded-xl border border-gray-800 overflow-hidden hover:border-neon-purple/50 transition-all duration-300">
+                    <div class="h-1 bg-gradient-to-r from-neon-purple to-neon-blue"></div>
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 rounded-full bg-neon-purple/10 flex items-center justify-center mr-3">
+                                <i class="fa fa-code-fork text-neon-purple"></i>
+                            </div>
+                            <h3 class="text-lg font-future font-semibold text-white">架构开放，预留演进空间</h3>
+                        </div>
+                        <ul class="space-y-3 text-gray-light text-sm">
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-purple mt-1 mr-2"></i>
+                                <span>采用模块化与微服务架构，确保灵活扩展</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-purple mt-1 mr-2"></i>
+                                <span>快速响应未来监管变化和业务创新需求</span>
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fa fa-check-circle text-neon-purple mt-1 mr-2"></i>
+                                <span>预留知识图谱等新技术的融合接口</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 技术架构图 -->
+            <div class="bg-dark-card rounded-xl border border-gray-800 p-6 mt-8">
+                <h3 class="text-xl font-future font-semibold mb-6 text-white">系统技术架构</h3>
+                <div class="relative h-64 md:h-80 bg-dark-bg rounded-lg p-4 overflow-hidden">
+                    <!-- 网格背景 -->
+                    <div class="absolute inset-0 bg-grid opacity-30"></div>
+                    
+                    <!-- 架构层次图 -->
+                    <div class="absolute top-4 left-1/2 transform -translate-x-1/2 w-5/6 bg-dark-card border border-neon-blue/30 p-3 rounded-md text-center z-10">
+                        <p class="font-medium text-neon-blue">应用层 - 风险预警与管理模块</p>
+                    </div>
+                    <div class="absolute top-20 left-1/2 transform -translate-x-1/2 w-5/6 bg-dark-card border border-neon-cyan/30 p-3 rounded-md text-center z-10">
+                        <p class="font-medium text-neon-cyan">服务层 - 模型服务、策略引擎、AI推理</p>
+                    </div>
+                    <div class="absolute top-36 left-1/2 transform -translate-x-1/2 w-5/6 bg-dark-card border border-neon-purple/30 p-3 rounded-md text-center z-10">
+                        <p class="font-medium text-neon-purple">数据层 - 数据集成、清洗、存储</p>
+                    </div>
+                    <div class="absolute top-52 left-1/2 transform -translate-x-1/2 w-5/6 bg-dark-card border border-gray-700 p-3 rounded-md text-center z-10">
+                        <p class="font-medium text-gray-light">基础设施层 - 服务器、网络、安全</p>
+                    </div>
+                    <!-- 连接线 -->
+                    <div class="absolute top-16 left-1/2 transform -translate-x-1/2 w-1 h-4 bg-gradient-to-b from-neon-blue to-neon-cyan z-10"></div>
+                    <div class="absolute top-32 left-1/2 transform -translate-x-1/2 w-1 h-4 bg-gradient-to-b from-neon-cyan to-neon-purple z-10"></div>
+                    <div class="absolute top-48 left-1/2 transform -translate-x-1/2 w-1 h-4 bg-gradient-to-b from-neon-purple to-gray-600 z-10"></div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 一期规划部分 -->
+        <section id="first-phase" class="section-content mb-16 hidden">
+            <h2 class="text-2xl font-future font-bold mb-8 text-white border-b border-gray-800 pb-2">
+                第一期<span class="text-neon-cyan">规划</span>
+            </h2>
+            
+            <div class="bg-dark-card rounded-xl border border-gray-800 p-6 mb-8">
+                <h3 class="text-xl font-future font-semibold mb-4 text-white">系统框架搭建目标</h3>
+                <p class="text-gray-light mb-6">
+                    第一期将围绕以下核心问题构建系统框架，实现风险的精准识别和预警：
+                </p>
+                
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- 核心问题卡片 -->
+                    <div class="border border-gray-800 rounded-lg p-4 hover:border-neon-blue/50 transition-colors bg-dark-bg">
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 rounded-full bg-neon-blue/10 flex items-center justify-center mr-3">
+                                <span class="text-neon-blue font-semibold">1</span>
+                            </div>
+                            <p class="font-medium">各分支行下一个出现风险的客户是谁?</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 rounded-lg p-4 hover:border-neon-blue/50 transition-colors bg-dark-bg">
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 rounded-full bg-neon-blue/10 flex items-center justify-center mr-3">
+                                <span class="text-neon-blue font-semibold">2</span>
+                            </div>
+                            <p class="font-medium">各分支行下一个出现风险的产品是什么?</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 rounded-lg p-4 hover:border-neon-blue/50 transition-colors bg-dark-bg">
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 rounded-full bg-neon-blue/10 flex items-center justify-center mr-3">
+                                <span class="text-neon-blue font-semibold">3</span>
+                            </div>
+                            <p class="font-medium">各分支行下一个出现风险的流程是哪一个环节?</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 rounded-lg p-4 hover:border-neon-cyan/50 transition-colors bg-dark-bg">
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 rounded-full bg-neon-cyan/10 flex items-center justify-center mr-3">
+                                <span class="text-neon-cyan font-semibold">4</span>
+                            </div>
+                            <p class="font-medium">各分支行下一个出现风险的部门是哪一个?</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 rounded-lg p-4 hover:border-neon-cyan/50 transition-colors bg-dark-bg">
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 rounded-full bg-neon-cyan/10 flex items-center justify-center mr-3">
+                                <span class="text-neon-cyan font-semibold">5</span>
+                            </div>
+                            <p class="font-medium">各分支行下一个出现风险的机构网点是哪一个?</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 rounded-lg p-4 hover:border-neon-cyan/50 transition-colors bg-dark-bg">
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 rounded-full bg-neon-cyan/10 flex items-center justify-center mr-3">
+                                <span class="text-neon-cyan font-semibold">6</span>
+                            </div>
+                            <p class="font-medium">各分支行下一个出现风险的人员是哪一个?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 一期开发重点 -->
+            <div class="bg-dark-card rounded-xl border border-gray-800 p-6">
+                <h3 class="text-xl font-future font-semibold mb-6 text-white">一期开发重点模块</h3>
+                <div class="h-80">
+                    <canvas id="phaseOneChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 导航结构部分 -->
+        <section id="navigation" class="section-content mb-16 hidden">
+            <h2 class="text-2xl font-future font-bold mb-8 text-white border-b border-gray-800 pb-2">
+                系统<span class="text-neon-purple">导航</span>结构
+            </h2>
+            
+            <div class="bg-dark-card rounded-xl border border-gray-800 p-6 mb-8">
+                <h3 class="text-xl font-future font-semibold mb-6 text-white">一级页面导航</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- 一级导航项 -->
+                    <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer group" onclick="showSecondaryNav('nav1')">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-neon-blue/10 group-hover:bg-neon-blue/20 flex items-center justify-center mr-3 transition-colors">
+                                <i class="fa fa-building text-neon-blue"></i>
+                            </div>
+                            <span class="font-medium">全行资产质量信用风险预警</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer group" onclick="showSecondaryNav('nav2')">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-neon-blue/10 group-hover:bg-neon-blue/20 flex items-center justify-center mr-3 transition-colors">
+                                <i class="fa fa-map-marker text-neon-blue"></i>
+                            </div>
+                            <span class="font-medium">区域风险预警</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer group" onclick="showSecondaryNav('nav3')">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-neon-blue/10 group-hover:bg-neon-blue/20 flex items-center justify-center mr-3 transition-colors">
+                                <i class="fa fa-industry text-neon-blue"></i>
+                            </div>
+                            <span class="font-medium">行业风险预警</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer group" onclick="showSecondaryNav('nav4')">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-neon-blue/10 group-hover:bg-neon-blue/20 flex items-center justify-center mr-3 transition-colors">
+                                <i class="fa fa-sitemap text-neon-blue"></i>
+                            </div>
+                            <span class="font-medium">集团风险预警</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-cyan/50 transition-colors cursor-pointer group" onclick="showSecondaryNav('nav5')">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-neon-cyan/10 group-hover:bg-neon-cyan/20 flex items-center justify-center mr-3 transition-colors">
+                                <i class="fa fa-exchange text-neon-cyan"></i>
+                            </div>
+                            <span class="font-medium">金融市场信用风险预警</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-cyan/50 transition-colors cursor-pointer group" onclick="showSecondaryNav('nav6')">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-neon-cyan/10 group-hover:bg-neon-cyan/20 flex items-center justify-center mr-3 transition-colors">
+                                <i class="fa fa-cubes text-neon-cyan"></i>
+                            </div>
+                            <span class="font-medium">组合风险预警</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-cyan/50 transition-colors cursor-pointer group" onclick="showSecondaryNav('nav7')">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-neon-cyan/10 group-hover:bg-neon-cyan/20 flex items-center justify-center mr-3 transition-colors">
+                                <i class="fa fa-file-text text-neon-cyan"></i>
+                            </div>
+                            <span class="font-medium">生成式风险报告</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-cyan/50 transition-colors cursor-pointer group" onclick="showSecondaryNav('nav8')">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-neon-cyan/10 group-hover:bg-neon-cyan/20 flex items-center justify-center mr-3 transition-colors">
+                                <i class="fa fa-comments text-neon-cyan"></i>
+                            </div>
+                            <span class="font-medium">意见建议词条</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 二级导航区域 -->
+            <div id="secondary-nav-container" class="bg-dark-card rounded-xl border border-gray-800 p-6">
+                <h3 class="text-xl font-future font-semibold mb-6 text-white">二级页面导航</h3>
+                <p class="text-gray-light italic">请选择上方的一级导航项查看对应的二级导航内容</p>
+                
+                <!-- 二级导航内容 - 全行资产质量信用风险预警 -->
+                <div id="nav1" class="secondary-nav-content hidden">
+                    <div class="pl-4 border-l-4 border-neon-blue mb-4">
+                        <h4 class="font-future font-semibold text-lg text-white">全行资产质量信用风险预警</h4>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">公司信用风险预警</span>
+                            <div class="mt-2 text-sm text-gray-light">包含：大公司预警、对公普惠预警</div>
+                        </div>
+                        
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">零售信用风险预警</span>
+                            <div class="mt-2 text-sm text-gray-light">包含：消费金融预警、对私普惠预警、银行卡预警</div>
+                        </div>
+                        
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">全省汇总</span>
+                            <div class="mt-2 text-sm text-gray-light">包含：全省资产质量、地区资产质量等汇总数据</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 二级导航内容 - 区域风险预警 -->
+                <div id="nav2" class="secondary-nav-content hidden">
+                    <div class="pl-4 border-l-4 border-neon-blue mb-4">
+                        <h4 class="font-future font-semibold text-lg text-white">区域风险预警</h4>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">区域经济风险预警</span>
+                            <div class="mt-2 text-sm text-gray-light">包含：武汉市区域经济情况及预警指标等</div>
+                        </div>
+                        
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">区域政策风险</span>
+                            <div class="mt-2 text-sm text-gray-light">包含：区域政策变化及潜在风险预警</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 其他二级导航内容 -->
+                <div id="nav3" class="secondary-nav-content hidden">
+                    <div class="pl-4 border-l-4 border-neon-blue mb-4">
+                        <h4 class="font-future font-semibold text-lg text-white">行业风险预警</h4>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">定量维度</span>
+                            <div class="mt-2 text-sm text-gray-light">包含：行业景气度、授信集中度风险等</div>
+                        </div>
+                        
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">定性维度</span>
+                            <div class="mt-2 text-sm text-gray-light">包含：行业竞争格局、宏观经济与政策环境等</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="nav4" class="secondary-nav-content hidden">
+                    <div class="pl-4 border-l-4 border-neon-blue mb-4">
+                        <h4 class="font-future font-semibold text-lg text-white">集团风险预警</h4>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">授信集中度风险预警</span>
+                        </div>
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">舆情风险预警</span>
+                        </div>
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">关联交易风险预警</span>
+                        </div>
+                        <div class="border border-gray-800 bg-dark-bg rounded-lg p-4 hover:border-neon-blue/50 transition-colors cursor-pointer">
+                            <span class="font-medium text-neon-blue">其他预警</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 其他导航项的二级菜单内容省略 -->
+            </div>
+        </section>
+        
+        <!-- 功能详情部分 -->
+        <section id="features" class="section-content mb-16 hidden">
+            <h2 class="text-2xl font-future font-bold mb-8 text-white border-b border-gray-800 pb-2">
+                系统<span class="text-neon-blue">功能</span>详情
+            </h2>
+            
+            <!-- 功能详情导航 -->
+            <div class="bg-dark-card rounded-xl border border-gray-800 p-6 mb-8">
+                <h3 class="text-lg font-future font-semibold mb-4 text-white">选择查看详细功能模块</h3>
+                
+                <div class="flex flex-wrap gap-2">
+                    <button class="feature-tab px-4 py-2 bg-neon-blue text-dark-bg rounded-md text-sm font-medium" data-feature="company-risk">公司信用风险预警</button>
+                    <button class="feature-tab px-4 py-2 bg-gray-dark hover:bg-gray-700 rounded-md text-sm" data-feature="retail-risk">零售信用风险预警</button>
+                    <button class="feature-tab px-4 py-2 bg-gray-dark hover:bg-gray-700 rounded-md text-sm" data-feature="regional-risk">区域风险预警</button>
+                    <button class="feature-tab px-4 py-2 bg-gray-dark hover:bg-gray-700 rounded-md text-sm" data-feature="industry-risk">行业风险预警</button>
+                    <button class="feature-tab px-4 py-2 bg-gray-dark hover:bg-gray-700 rounded-md text-sm" data-feature="group-risk">集团风险预警</button>
+                    <button class="feature-tab px-4 py-2 bg-gray-dark hover:bg-gray-700 rounded-md text-sm" data-feature="market-risk">金融市场信用风险</button>
+                    <button class="feature-tab px-4 py-2 bg-gray-dark hover:bg-gray-700 rounded-md text-sm" data-feature="portfolio-risk">组合风险预警</button>
+                    <button class="feature-tab px-4 py-2 bg-gray-dark hover:bg-gray-700 rounded-md text-sm" data-feature="reports">生成式风险报告</button>
+                </div>
+            </div>
+            
+            <!-- 公司信用风险预警详情 -->
+            <div id="company-risk" class="feature-content">
+                <div class="bg-dark-card rounded-xl border border-gray-800 p-6 mb-6">
+                    <h3 class="text-xl font-future font-semibold mb-4 text-white">公司信用风险预警</h3>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-medium text-lg mb-2 text-neon-blue">大公司预警</h4>
+                        <div class="grid md:grid-cols-4 gap-4 mb-6">
+                            <div class="border border-gray-800 rounded-lg p-4 bg-dark-bg hover:border-neon-blue/30 transition-colors">
+                                <div class="font-medium mb-2 text-white">机构风险预警</div>
+                                <div class="text-sm text-gray-light">监控各机构的资产质量和还款情况，提供多维度指标分析</div>
+                            </div>
+                            <div class="border border-gray-800 rounded-lg p-4 bg-dark-bg hover:border-neon-blue/30 transition-colors">
+                                <div class="font-medium mb-2 text-white">产品风险预警</div>
+                                <div class="text-sm text-gray-light">按产品类型分析风险状况，识别高风险产品</div>
+                            </div>
+                            <div class="border border-gray-800 rounded-lg p-4 bg-dark-bg hover:border-neon-blue/30 transition-colors">
+                                <div class="font-medium mb-2 text-white">行业风险预警</div>
+                                <div class="text-sm text-gray-light">分析各行业的风险指标，预警行业性风险</div>
+                            </div>
+                            <div class="border border-gray-800 rounded-lg p-4 bg-dark-bg hover:border-neon-blue/30 transition-colors">
+                                <div class="font-medium mb-2 text-white">人员资产质量预警</div>
+                                <div class="text-sm text-gray-light">按客户经理等维度统计资产质量数据</div>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-800">
+                                <thead class="bg-gray-dark/50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">指标类别</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">具体指标</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-dark-bg divide-y divide-gray-800">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neon-blue">资产质量</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">表内余额、表内余额变动</td>
+                                        <td class="px-6 py-4 text-sm text-gray-light">监控表内资产余额及其变化趋势</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neon-blue">资产质量</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">关注余额、关注余额变动</td>
+                                        <td class="px-6 py-4 text-sm text-gray-light">监控关注类资产余额及其变化</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neon-blue">资产质量</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">逾期余额、逾期余额变动</td>
+                                        <td class="px-6 py-4 text-sm text-gray-light">监控逾期资产余额及其变化</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neon-blue">资产质量</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">不良余额、不良余额变动、不良率等</td>
+                                        <td class="px-6 py-4 text-sm text-gray-light">监控不良资产状况及其变化趋势</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neon-blue">还款情况</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">逾期客户名称、贷款余额、逾期天数等</td>
+                                        <td class="px-6 py-4 text-sm text-gray-light">详细展示逾期客户的还款情况</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-lg mb-2 text-neon-cyan">对公普惠预警</h4>
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <div class="border border-gray-800 rounded-lg p-4 bg-dark-bg hover:border-neon-cyan/30 transition-colors">
+                                <div class="font-medium mb-2 text-white">机构风险预警</div>
+                                <div class="text-sm text-gray-light">监控普惠金融业务各机构的风险状况</div>
+                            </div>
+                            <div class="border border-gray-800 rounded-lg p-4 bg-dark-bg hover:border-neon-cyan/30 transition-colors">
+                                <div class="font-medium mb-2 text-white">产品风险预警</div>
+                                <div class="text-sm text-gray-light">分析普惠金融各类产品的风险指标</div>
+                            </div>
+                            <div class="border border-gray-800 rounded-lg p-4 bg-dark-bg hover:border-neon-cyan/30 transition-colors">
+                                <div class="font-medium mb-2 text-white">人员资产质量预警</div>
+                                <div class="text-sm text-gray-light">按客户经理等维度统计普惠业务资产质量</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 数据查询界面示例 -->
+                <div class="bg-dark-card rounded-xl border border-gray-800 p-6">
+                    <h3 class="text-lg font-future font-semibold mb-4 text-white">机构风险预警查询界面示例</h3>
+                    
+                    <div class="border border-gray-800 rounded-lg p-4 mb-6 bg-dark-bg">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-light mb-1">统计日期</label>
+                                <input type="date" class="w-full p-2 bg-gray-dark border border-gray-700 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-neon-blue focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-light mb-1">二级机构</label>
+                                <select class="w-full p-2 bg-gray-dark border border-gray-700 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-neon-blue focus:border-transparent">
+                                    <option>请选择二级机构</option>
+                                    <option>二级行1</option>
+                                    <option>二级行2</option>
+                                    <option>二级行3</option>
+                                    <!-- 更多机构选项 -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-light mb-1">对比时点</label>
+                                <select class="w-full p-2 bg-gray-dark border border-gray-700 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-neon-blue focus:border-transparent">
+                                    <option>较上日</option>
+                                    <option>较上月</option>
+                                    <option>较上年</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end gap-2">
+                                <button class="px-4 py-2 bg-neon-blue text-dark-bg rounded-md hover:bg-neon-blue/90 transition-colors">查询</button>
+                                <button class="px-4 py-2 bg-gray-dark border border-gray-700 rounded-md hover:bg-gray-700 transition-colors">重置</button>
+                            </div>
+                        </div>
+                        
+                        <div class="border-b border-gray-800 pb-2 mb-4">
+                            <div class="flex gap-4">
+                                <button class="px-4 py-2 bg-neon-blue text-dark-bg rounded-md text-sm">资产质量</button>
+                                <button class="px-4 py-2 bg-gray-dark border border-gray-700 rounded-md text-sm hover:bg-gray-700 transition-colors">还款情况</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 数据表格示例 -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-800">
+                                <thead class="bg-gray-dark/50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">机构名称</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">表内余额</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">表内余额变动</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">关注余额</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">关注余额变动</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">不良率</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-light uppercase tracking-wider">不良率变动</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-dark-bg divide-y divide-gray-800">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">三级机构A</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">¥125,680,000</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-neon-cyan">+2.3%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">¥5,230,000</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-accent-red">+1.8%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-accent-red">3.2%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-accent-red">+0.5%</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">三级机构B</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">¥98,450,000</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-neon-cyan">+1.1%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">¥3,120,000</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-neon-cyan">-0.7%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-yellow-400">1.8%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-neon-cyan">-0.2%</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">三级机构C</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">¥75,230,000</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-accent-red">-0.5%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-light">¥2,890,000</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-neon-cyan">-1.2%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-neon-cyan">0.9%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-neon-cyan">-0.3%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 其他功能详情内容 -->
+            <div id="retail-risk" class="feature-content hidden">
+                <div class="bg-dark-card rounded-xl border border-gray-800 p-6">
+                    <h3 class="text-xl font-future font-semibold mb-4 text-white">零售信用风险预警</h3>
+                    <p class="text-gray-light">零售信用风险预警模块包含消费金融预警、对私普惠预警和银行卡预警三个主要部分，分别针对不同类型的零售业务进行风险监控和预警。</p>
+                </div>
+            </div>
+            
+            <!-- 其他功能模块内容省略 -->
+        </section>
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="bg-dark-card border-t border-gray-800 py-8 mt-16">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-future font-semibold mb-4 text-white">楚天镜智能风控系统</h3>
+                    <p class="text-sm text-gray-light">
+                        构建全视图风控框架，赋能金融机构精准识别和管理信用风险，
+                        服务国家战略，支持实体经济发展。
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-future font-semibold mb-4 text-white">快速导航</h3>
+                    <ul class="space-y-2 text-sm text-gray-light">
+                        <li><a href="#" class="hover:text-neon-blue transition-colors" onclick="showSection('overview'); return false;">系统概述</a></li>
+                        <li><a href="#" class="hover:text-neon-blue transition-colors" onclick="showSection('strategic-goals'); return false;">战略目标</a></li>
+                        <li><a href="#" class="hover:text-neon-blue transition-colors" onclick="showSection('first-phase'); return false;">一期规划</a></li>
+                        <li><a href="#" class="hover:text-neon-blue transition-colors" onclick="showSection('navigation'); return false;">导航结构</a></li>
+                        <li><a href="#" class="hover:text-neon-blue transition-colors" onclick="showSection('features'); return false;">功能详情</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-future font-semibold mb-4 text-white">联系我们</h3>
+                    <ul class="space-y-2 text-sm text-gray-light">
+                        <li class="flex items-center">
+                            <i class="fa fa-envelope-o mr-2 text-neon-blue"></i>
+                            <span>contact@chutianjing.com</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fa fa-phone mr-2 text-neon-blue"></i>
+                            <span>400-123-4567</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-6 text-center text-sm text-gray-light/70">
+                © 2023 楚天镜智能风控系统 版权所有
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // 默认密码 (实际部署时应修改为您自己的密码)
+        const ACCESS_PASSWORD = "hbctj123";
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 访问控制表单提交
+            document.getElementById('access-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const password = document.getElementById('password').value.trim();
+                console.log('Entered password (trimmed):', password, 'Expected password:', ACCESS_PASSWORD);
+                if (password === ACCESS_PASSWORD) {
+                    // 密码正确，隐藏访问控制
+                    document.getElementById('access-control').classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => {
+                        document.getElementById('access-control').style.display = 'none';
+                    }, 500);
+                    
+                    // 初始化图表
+                    initCharts();
+                } else {
+                    // 密码错误，显示错误信息
+                    document.getElementById('access-error').classList.remove('hidden');
+                    setTimeout(() => {
+                        document.getElementById('access-error').classList.add('hidden');
+                    }, 3000);
+                }
+            });
+            
+            // 密码显示/隐藏切换
+            document.getElementById('toggle-password').addEventListener('click', function() {
+                const passwordInput = document.getElementById('password');
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // 切换图标
+                this.innerHTML = type === 'password' ? '<i class="fa fa-eye-slash"></i>' : '<i class="fa fa-eye"></i>';
+            });
+            
+            // 初始化导航交互
+            initNavigation();
+        });
+        
+        // 初始化图表
+        function initCharts() {
+            // 风险覆盖范围图表
+            const riskCoverageCtx = document.getElementById('riskCoverageChart').getContext('2d');
+            new Chart(riskCoverageCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['客户风险', '产品风险', '流程风险', '部门风险', '机构风险', '人员风险'],
+                    datasets: [{
+                        label: '系统风险覆盖能力',
+                        data: [90, 85, 80, 75, 95, 85],
+                        backgroundColor: 'rgba(0, 240, 255, 0.1)',
+                        borderColor: 'rgba(0, 240, 255, 0.8)',
+                        pointBackgroundColor: 'rgba(0, 240, 255, 1)',
+                        pointBorderColor: '#0F121A',
+                        pointHoverBackgroundColor: '#0F121A',
+                        pointHoverBorderColor: 'rgba(0, 240, 255, 1)'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(160, 174, 192, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(160, 174, 192, 0.1)'
+                            },
+                            pointLabels: {
+                                color: 'rgba(160, 174, 192, 0.8)'
+                            },
+                            ticks: {
+                                color: 'rgba(160, 174, 192, 0.5)',
+                                backdropColor: 'transparent',
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(160, 174, 192, 0.8)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 一期开发重点图表
+            const phaseOneCtx = document.getElementById('phaseOneChart').getContext('2d');
+            new Chart(phaseOneCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['资产质量系统', '预警模型', '风险报告自动化', '可视化策略引擎', '数据整合', '用户界面'],
+                    datasets: [{
+                        label: '开发优先级',
+                        data: [95, 90, 85, 80, 90, 75],
+                        backgroundColor: [
+                            'rgba(0, 240, 255, 0.8)',
+                            'rgba(0, 255, 209, 0.8)',
+                            'rgba(157, 78, 221, 0.8)',
+                            'rgba(0, 240, 255, 0.5)',
+                            'rgba(0, 255, 209, 0.5)',
+                            'rgba(157, 78, 221, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(0, 240, 255, 1)',
+                            'rgba(0, 255, 209, 1)',
+                            'rgba(157, 78, 221, 1)',
+                            'rgba(0, 240, 255, 0.7)',
+                            'rgba(0, 255, 209, 0.7)',
+                            'rgba(157, 78, 221, 0.7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(160, 174, 192, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(160, 174, 192, 0.7)'
+                            },
+                            title: {
+                                display: true,
+                                text: '优先级评分',
+                                color: 'rgba(160, 174, 192, 0.9)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(160, 174, 192, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(160, 174, 192, 0.7)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(160, 174, 192, 0.8)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 导航交互初始化
+        function initNavigation() {
+            // 桌面端导航点击事件
+            document.querySelectorAll('.nav-item').forEach(button => {
+                button.addEventListener('click', function() {
+                    // 移除所有导航项的活跃状态
+                    document.querySelectorAll('.nav-item').forEach(btn => {
+                        btn.classList.remove('bg-gray-dark', 'text-white');
+                        btn.classList.add('hover:bg-gray-dark/50');
+                    });
+                    
+                    // 设置当前导航项为活跃状态
+                    this.classList.remove('hover:bg-gray-dark/50');
+                    this.classList.add('bg-gray-dark', 'text-white');
+                    
+                    // 显示对应的内容区域
+                    const sectionId = this.getAttribute('data-section');
+                    showSection(sectionId);
+                });
+            });
+            
+            // 移动端导航按钮点击事件
+            document.getElementById('mobile-menu-button').addEventListener('click', function() {
+                const mobileMenu = document.getElementById('mobile-menu');
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // 移动端导航项点击事件
+            document.querySelectorAll('.mobile-nav-item').forEach(button => {
+                button.addEventListener('click', function() {
+                    // 隐藏移动端菜单
+                    document.getElementById('mobile-menu').classList.add('hidden');
+                    
+                    // 显示对应的内容区域
+                    const sectionId = this.getAttribute('data-section');
+                    showSection(sectionId);
+                    
+                    // 更新桌面端导航状态
+                    document.querySelectorAll('.nav-item').forEach(btn => {
+                        if (btn.getAttribute('data-section') === sectionId) {
+                            btn.classList.remove('hover:bg-gray-dark/50');
+                            btn.classList.add('bg-gray-dark', 'text-white');
+                        } else {
+                            btn.classList.remove('bg-gray-dark', 'text-white');
+                            btn.classList.add('hover:bg-gray-dark/50');
+                        }
+                    });
+                });
+            });
+            
+            // 功能详情标签切换
+            document.querySelectorAll('.feature-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 移除所有标签的活跃状态
+                    document.querySelectorAll('.feature-tab').forEach(t => {
+                        t.classList.remove('bg-neon-blue', 'text-dark-bg');
+                        t.classList.add('bg-gray-dark', 'hover:bg-gray-700');
+                    });
+                    
+                    // 设置当前标签为活跃状态
+                    this.classList.remove('bg-gray-dark', 'hover:bg-gray-700');
+                    this.classList.add('bg-neon-blue', 'text-dark-bg');
+                    
+                    // 显示对应的功能内容
+                    const featureId = this.getAttribute('data-feature');
+                    document.querySelectorAll('.feature-content').forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    document.getElementById(featureId).classList.remove('hidden');
+                });
+            });
+            
+            // 设置初始活跃状态
+            document.querySelector('.nav-item[data-section="overview"]').classList.remove('hover:bg-gray-dark/50');
+            document.querySelector('.nav-item[data-section="overview"]').classList.add('bg-gray-dark', 'text-white');
+        }
+        
+        // 显示指定的内容区域
+        function showSection(sectionId) {
+            // 隐藏所有内容区域
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // 显示指定的内容区域
+            document.getElementById(sectionId).classList.remove('hidden');
+            
+            // 滚动到页面顶部
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+        // 显示二级导航内容
+        function showSecondaryNav(navId) {
+            // 隐藏所有二级导航内容
+            document.querySelectorAll('.secondary-nav-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 显示指定的二级导航内容
+            document.getElementById(navId).classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
+    
