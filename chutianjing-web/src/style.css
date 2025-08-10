@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: rgba(255,255,255,0.06);
+  --glass: rgba(255,255,255,0.1);
+}
+
+html, body, #app { height: 100%; }
+body { @apply bg-slate-900 text-slate-100 font-sans; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
+.border-gradient { position: relative; }
+.border-gradient::before {
+  content: "";
+  position: absolute; inset: 0; padding: 1px; border-radius: 0.75rem;
+  background: linear-gradient(120deg, #38bdf8, #818cf8, #22d3ee);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+
+.card-glass { @apply backdrop-blur bg-white/10 rounded-xl border-gradient shadow-glow; }
+
+/* Bento Grid helpers */
+.grid-bento { @apply grid grid-cols-12 gap-4; }
+.card-lg { grid-column: span 8 / span 8; grid-row: span 2 / span 2; }
+.card-md { grid-column: span 4 / span 4; grid-row: span 1 / span 1; }
+.card-sm { grid-column: span 3 / span 3; grid-row: span 1 / span 1; }
+
+.link-primary { @apply text-sky-300 hover:text-sky-200 underline underline-offset-4; }
+.btn-primary { @apply px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 active:scale-95 transition; }
+.btn-ghost { @apply px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 transition; }
+
+.nav-active { @apply text-sky-300 border-b-2 border-sky-400; }
